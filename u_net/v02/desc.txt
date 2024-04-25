@@ -1,0 +1,3 @@
+this is the original thurey implementation of the problem from his naca airfoil
+
+v02: fixed the dataset where in an image of (128, 128, 3) the 3 channels are used to store mask, x and y- vel in grayscale

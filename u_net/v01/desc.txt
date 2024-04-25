@@ -1,0 +1,1 @@
+this is the original thurey implementation of the problem from his naca airfoil

@@ -1,0 +1,5 @@
+this is the original thurey implementation of the problem from his naca airfoil
+
+v02: fixed the dataset where in an image of (128, 128, 3) the 3 channels are used to store mask, x and y- vel in grayscale
+v03: fixed mask generation to 1d, since grayscale images are used. added test to test for a not trained reynoldsnumber. changed the reynoldsnumbers used for training to every 100, so that every 50 can be used for testing.
+v04: check every not trained reynoldsnumber and make a plot to see which reynoldsnumbers are the worst to predict
