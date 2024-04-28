@@ -20,13 +20,15 @@ best_config = best_config.iloc[41]
 best_config = best_config.to_dict()
 
 image_dir = "images"
+if not os.path.exists(image_dir):
+    os.makedirs(image_dir)
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyperparameters
 batch_size = 32
-learning_rate = 0.006
+learning_rate = best_config["params_learning_rate"]
 num_epochs = 500
 
 print(f"Device: {device} | Learning rate: {learning_rate:.4f} | Num epochs: {num_epochs}")

@@ -3,7 +3,7 @@ from PIL import Image
 from matplotlib import cm
 import matplotlib.pyplot as plt
 
-def normalize(data):
+def normalize_image(data):
     min_value = np.min(data)
     max_value = np.max(data)
     data -= min_value
@@ -16,9 +16,9 @@ def fullImageOut(filename, _inputs, _outputs, _targets, saveTargets=False, norma
     outputs = np.copy(_outputs)
     targets = np.copy(_targets)
     
-    inputs = normalize(inputs)
-    outputs = normalize(outputs)
-    targets = normalize(targets)
+    inputs = normalize_image(inputs)
+    outputs = normalize_image(outputs)
+    targets = normalize_image(targets)
     
     s = outputs.shape[1] # should be 128
     if saveMontage:
