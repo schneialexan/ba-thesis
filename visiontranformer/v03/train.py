@@ -6,7 +6,7 @@ from tqdm import tqdm
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from model import ViT
+from model import FlowTransformer
 from dataset import TrainDataset, TestDataset
 from utils import fullImageOut
 
@@ -27,23 +27,7 @@ test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
 print('Data loaded: train:', len(train_loader), 'test:', len(test_loader))
 
-image_size = 128
-patch_size = 16
-dim = 128
-depth = 6
-heads = 8
-mlp_dim = 256
-
-model = ViT(
-    image_size=image_size,
-    patch_size=patch_size,
-    dim=dim,
-    depth=depth,
-    heads=heads,
-    mlp_dim=mlp_dim
-)
-
-model = model.to(device)
+model = FlowTransformer(input_size=(3, 128, 128), output_size=(3, 128, 128)).to(device)
 
 criterion = nn.L1Loss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
@@ -62,7 +46,7 @@ with tqdm(total=num_epochs) as pbar:
                 labels = labels.float().to(device)
 
                 # Forward pass
-                outputs = model(images)
+                outputs = model(images, images)
                 loss = criterion(outputs, labels)
 
                 # Backward and optimize
@@ -83,7 +67,7 @@ with tqdm(total=num_epochs) as pbar:
                     images = images.float().to(device)
                     labels = labels.float().to(device)
 
-                    outputs = model(images)
+                    outputs = model(images, images)
                     vali_loss += criterion(outputs, labels).item()
                     
                     if i == 0 and epoch % 5 == 0:

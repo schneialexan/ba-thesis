@@ -1,50 +1,113 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-import time
 
-from imagetrans import ImageTransformer, train, evaluate
-from dataset import TrainDataset, ValiDataset
+from tqdm import tqdm
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from model import ViT
+from dataset import TrainDataset, TestDataset
+from utils import fullImageOut
+
+import warnings
+warnings.filterwarnings("ignore", message="Plan failed with a cudnnException: CUDNN_BACKEND_EXECUTION_PLAN_DESCRIPTOR")
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+#best_config = pd.read_csv('vit_study.csv')
 
 batch_size = 32
+num_epochs = 150
 
 data = TrainDataset()
-dataValidation = ValiDataset(data)
-trainLoader = DataLoader(data, batch_size=batch_size, shuffle=True, drop_last=True)
-testLoader = DataLoader(dataValidation, batch_size=batch_size, shuffle=False, drop_last=True) 
+test_data = TestDataset(data)
+train_loader = DataLoader(data, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
+print('Data loaded: train:', len(train_loader), 'test:', len(test_loader))
 
-N_EPOCHS = 150
-
-imagesize = trainLoader.dataset[0][0].shape[1]
-patchsize = 4
-num_classes = 10
-channels = trainLoader.dataset[0][0].shape[0]
-dim = 64
-depth = 2
+image_size = 128
+patch_size = 16
+dim = 128
+depth = 6
 heads = 8
 mlp_dim = 128
 
-model = ImageTransformer(image_size=imagesize, 
-                         patch_size=patchsize, 
-                         num_classes=num_classes, 
-                         channels=channels, 
-                         dim=dim, 
-                         depth=depth, 
-                         heads=heads, 
-                         mlp_dim=mlp_dim)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.003)
+model = ViT(
+    image_size=image_size,
+    patch_size=patch_size,
+    dim=dim,
+    depth=depth,
+    heads=heads,
+    mlp_dim=mlp_dim
+)
 
+model = model.to(device)
 
-train_loss_history, test_loss_history = [], []
-for epoch in range(1, N_EPOCHS + 1):
-    print('Epoch:', epoch)
-    start_time = time.time()
-    train(model, optimizer, trainLoader, train_loss_history)
-    print('Execution time:', '{:5.2f}'.format(time.time() - start_time), 'seconds')
-    evaluate(model, testLoader, test_loss_history)
+criterion = nn.L1Loss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-print('Execution time')
+total_step = len(train_loader)
+loss_total = 0
+losses = []
 
-PATH = ".\ViTnet_Cifar10_4x4_aug_1.pt" # Use your own path
-torch.save(model.state_dict(), PATH)
+with tqdm(total=num_epochs) as pbar:
+    for epoch in range(num_epochs):
+        model.train()
+        pbar.set_description(f'Epoch [{epoch+1}/{num_epochs}]')
+        with tqdm(train_loader, leave=False) as pbar_inner:
+            for i, (images, labels) in enumerate(pbar_inner):
+                images = images.float().to(device)
+                labels = labels.float().to(device)
+
+                # Forward pass
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+
+                # Backward and optimize
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                loss_total += loss.item()
+                losses.append(loss.item())
+
+                pbar_inner.set_postfix(loss=loss.item())
+                pbar_inner.update()
+                
+            model.eval()
+            with torch.no_grad():
+                vali_loss = 0
+                for i, (images, labels) in enumerate(test_loader):
+                    images = images.float().to(device)
+                    labels = labels.float().to(device)
+
+                    outputs = model(images)
+                    vali_loss += criterion(outputs, labels).item()
+                    
+                    if i == 0 and epoch % 5 == 0:
+                        input_image = images[0].cpu().numpy()
+                        target_image = labels[0].cpu().numpy()
+                        output_image = outputs[0].cpu().numpy()
+                        fullImageOut(f'images/output_{epoch}.png', input_image, target_image, output_image)
+                        plt.close('all')
+                    pbar_inner.set_postfix(vali_loss=vali_loss/len(test_loader))
+        
+        pbar.set_postfix(loss=loss_total/len(train_loader), vali_loss=vali_loss/len(test_loader))
+        pbar.update()
+
+print('Finished Training')
+
+torch.save(model.state_dict(), 'final_vit_model.pth')
+
+# plot and save loss
+fig = plt.figure()
+plt.plot(losses)
+plt.xlabel('Step')
+plt.ylabel('Loss')
+plt.savefig('loss.png')
+
+with open('losses.txt', 'w') as f:
+    for loss in losses:
+        f.write(f'{loss}\n')                    

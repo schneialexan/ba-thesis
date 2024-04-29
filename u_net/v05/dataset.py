@@ -78,7 +78,7 @@ class TrainDataset(Dataset):
 
 # simplified validation data set (main one is TurbDataset above)
 
-class ValiDataset(TrainDataset):
+class TestDataset(TrainDataset):
     def __init__(self, dataset): 
         self.inputs = dataset.valiInputs
         self.targets = dataset.valiTargets

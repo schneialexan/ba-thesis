@@ -50,37 +50,3 @@ class ViT(nn.Module):
         
         p = self.mlp_head(p)
         return p
-
-'''
-
-# Usage
-from dataset import generate_input  # Assuming generate_input function is in a dataset module
-input_img = generate_input(100., 0.05).reshape(1, 3, 128, 128)
-input_img = torch.tensor(input_img).float()
-print(f'Input image shape: {input_img.shape}')
-
-image_size = input_img.shape[2]
-patch_size = 16
-dim = 128
-depth = 6
-heads = 8
-mlp_dim = 128
-
-model = ViT(
-    image_size=image_size,
-    patch_size=patch_size,
-    dim=dim,
-    depth=depth,
-    heads=heads,
-    mlp_dim=mlp_dim
-)
-
-output = model(input_img)
-print(f'Output shape: {output.shape}')
-
-import matplotlib.pyplot as plt
-fig, ax = plt.subplots(1, 3, figsize=(10, 5))
-for i in range(3):
-    ax[i].imshow(output[0, i].detach().numpy(), cmap='viridis')
-    ax[i].axis('off')
-plt.savefig('output.png')'''
