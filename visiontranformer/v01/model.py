@@ -1,0 +1,3 @@
+'''
+Vision Transformer model class
+'''

@@ -29,7 +29,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # Hyperparameters
 batch_size = 32
 learning_rate = best_config["params_learning_rate"]
-num_epochs = 500
+num_epochs = 1000
 
 print(f"Device: {device} | Learning rate: {learning_rate:.4f} | Num epochs: {num_epochs}")
 
