@@ -88,7 +88,7 @@ def imageOut(filename, _outputs, _targets, saveTargets=False, normalize=False, s
 
 
 def normalize_image(img):
-    return (img - np.min(img)) / (np.max(img) - np.min(img))
+    return (img - img.min()) / (img.max() - img.min())
 
 def fullImageOut(filename, _inputs, _targets, _outputs, saveTargets=False, normalize=False, saveMontage=True):
     inputs = np.copy(_inputs)

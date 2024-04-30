@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", message="Plan failed with a cudnnException: CU
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-best_config = pd.read_csv('unet_study.csv')
+best_config = pd.read_csv('vit_study.csv')
 best_config = best_config.loc[best_config['value'].idxmin()]
 
 num_heads = best_config['params_num_heads']
@@ -25,6 +25,7 @@ learning_rate = best_config['params_learning_rate']
 betas = (best_config['params_beta1'], best_config['params_beta2'])
 weight_decay = best_config['params_weight_decay']
 
+#print(f'Best config: {best_config}')
 
 batch_size = 32
 num_epochs = 1000
