@@ -90,7 +90,7 @@ with tqdm(total=num_epochs) as pbar:
                         input_image = images[0].cpu().numpy()
                         target_image = labels[0].cpu().numpy()
                         output_image = outputs[0].cpu().numpy()
-                        fullImageOut(f'images/output_{epoch}.png', input_image, target_image, output_image)
+                        fullImageOut(f'images/output_{epoch}', input_image, target_image, output_image)
                         plt.close('all')
                     pbar_inner.set_postfix(vali_loss=vali_loss/len(test_loader))
         

@@ -118,7 +118,7 @@ with tqdm(total=num_epochs) as pbar:
                         inputs_image = inputs.permute([0, 4, 3, 1, 2])[0].cpu().numpy()[0]
                         output_image = outputs.permute([0, 4, 3, 1, 2])[0].cpu().numpy()[0]
                         target_image = targets.permute([0, 4, 3, 1, 2])[0].cpu().numpy()[0]
-                        fullImageOut(os.path.join(image_dir, "epoch_%d.png" % epoch), inputs_image, output_image, target_image)
+                        fullImageOut(os.path.join(image_dir, "output_%d" % epoch), inputs_image, output_image, target_image)
                         plt.close('all')
                     
                     pbar_inner.set_description(f'Validation Loss: {vali_loss/len(test_loader):.4f}')

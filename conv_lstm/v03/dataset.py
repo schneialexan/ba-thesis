@@ -38,7 +38,6 @@ def generate_output(Re):
     return np.stack([p[0], u[0], v[0]], axis=0, dtype=np.float64)
 
 
-
 class ConvLSTM2DDataset(Dataset):
     def __init__(self, mode="train"):
         self.REs = np.arange(100., 4000.0, 100.)
