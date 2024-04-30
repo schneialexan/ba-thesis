@@ -161,3 +161,4 @@ cython_debug/
 
 # ignore all .pth files 
 *.pth
+*.onnx

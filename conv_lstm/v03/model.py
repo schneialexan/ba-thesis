@@ -210,3 +210,22 @@ class ConvLSTM(nn.Module):
         if not isinstance(param, list):
             param = [param] * num_layers
         return param
+
+'''
+# sample usage
+model = ConvLSTM(input_dim=3, 
+                 hidden_dim=[64, 64, 64], 
+                 input_seq=5, 
+                 kernel_size=[(3,3)]*3, 
+                 num_layers=3, 
+                 batch_first=True, 
+                 bias=True, 
+                 return_all_layers=False)
+
+permutation = [0, 3, 4, 2, 1]
+input_image = torch.randn(1, 5, 3, 128, 128).permute(permutation)
+
+torch.onnx.export(model, input_image, "convlstm.onnx", verbose=True)
+
+output_image = model(input_image)
+print(output_image.shape)'''

@@ -84,4 +84,13 @@ class UNet(nn.Module):
         dout1 = self.dlayer1(dout2_out1)
         return dout1
     
-    
+
+'''
+# example usage
+model = UNet()
+input_image = torch.randn(1, 3, 128, 128)
+
+torch.onnx.export(model, input_image, "unet.onnx", verbose=True)
+
+output_image = model(input_image)
+print(output_image.shape)'''
