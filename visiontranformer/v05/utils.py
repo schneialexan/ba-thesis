@@ -149,7 +149,7 @@ def fullImageOut(filename, _inputs, _targets, _outputs, saveTargets=False, norma
             
     plt.colorbar(cm.ScalarMappable(cmap='gray'), ax=axes[3:])
     if saveMontage:
-        plt.savefig(filename + "_change.png")
+        plt.savefig(filename + ".png")
     
 def writeLog(filename, epoch, i, lossL1viz):
     logline = "Epoch: {}, batch-idx: {}, L1: {}\n".format(epoch+1, i, lossL1viz)

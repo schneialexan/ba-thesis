@@ -93,7 +93,7 @@ Re = 750.
 ts = 0.5
 
 Res = np.arange(150., 4000., 100.)
-tss = np.arange(0.5, 10.0, 0.05)
+tss = np.arange(0.5, 9.95, 0.05)
 
 losses = []
 
