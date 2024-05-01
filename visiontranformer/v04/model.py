@@ -22,8 +22,8 @@ class FlowTransformer(nn.Module):
         self.decoder = TransformerDecoder(decoder_layer, num_layers=num_layers)
         
         # Linear layers
-        self.linear = nn.Linear(input_size[0] * input_size[1] * input_size[2], hidden_dim)
-        self.output_linear = nn.Linear(hidden_dim, output_size[0] * output_size[1] * output_size[2])
+        self.linear = nn.Linear(input_size[0] * input_size[1] * input_size[2], hidden_dim)      # Flatten the input frames
+        self.output_linear = nn.Linear(hidden_dim, output_size[0] * output_size[1] * output_size[2])    # De-Flatten the output frames
 
     def forward(self, prev_frame, curr_frame):
         # Flatten the input frames
@@ -33,9 +33,6 @@ class FlowTransformer(nn.Module):
         # Apply linear layer
         prev_frame_linear = F.relu(self.linear(prev_frame_flat))
         curr_frame_linear = F.relu(self.linear(curr_frame_flat))
-        
-        # Add positional embeddings
-        # Implement positional embeddings
         
         # Encode the previous frame
         encoder_output = self.encoder(prev_frame_linear.unsqueeze(0))

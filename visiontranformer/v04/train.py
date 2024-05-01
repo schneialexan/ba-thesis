@@ -104,7 +104,7 @@ with tqdm(total=num_epochs) as pbar:
 
 print('Finished Training')
 
-torch.save(model.state_dict(), 'final_unet_model.pth')
+torch.save(model.state_dict(), 'final_vit_model.pth')
 
 # plot and save loss
 fig = plt.figure()
