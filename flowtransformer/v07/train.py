@@ -2,11 +2,12 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import psutil
-import subprocess
 import time
 import matplotlib.pyplot as plt
 import pandas as pd
 from tqdm import tqdm
+import pynvml
+import os
 
 from model import FlowTransformer
 from dataset import TrainDataset, TestDataset
@@ -16,6 +17,7 @@ import warnings
 warnings.filterwarnings("ignore", message="Plan failed with a cudnnException: CUDNN_BACKEND_EXECUTION_PLAN_DESCRIPTOR")
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+pynvml.nvmlInit()
 
 best_config = pd.read_csv('vit_study.csv')
 best_config = best_config.loc[best_config['value'].idxmin()]
@@ -26,7 +28,6 @@ num_layers = best_config['params_num_layers']
 learning_rate = best_config['params_learning_rate']
 betas = (best_config['params_beta1'], best_config['params_beta2'])
 weight_decay = best_config['params_weight_decay']
-
 
 batch_size = 32
 num_epochs = 1000
@@ -67,15 +68,28 @@ gpu_percent_usage = []
 times = []
 
 def get_gpu_usage():
-    result = subprocess.run(
-        ['nvidia-smi', '--query-gpu=utilization.gpu,memory.used', '--format=csv,noheader,nounits'],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
-    if result.returncode == 0:
-        utilization, memory_used = result.stdout.split('\n')[0].split(', ')
-        return float(utilization), float(memory_used) / 1024  # Convert memory to GB
-    else:
-        return 0.0, 0.0
+    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+    process_id = os.getpid()
+    processes = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
+
+    # Find the memory usage for the current process
+    memory_usage = 0
+    for process in processes:
+        if process.pid == process_id:
+            memory_usage = process.usedGpuMemory
+            break
+    gpu_mem = memory_usage / 1024 / 1024  / 1024  # Convert to GB
+    
+    utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
+    gpu = utilization.gpu
+    
+    process = psutil.Process(process_id)
+    
+    cpu = process.cpu_percent()
+    ram = process.memory_info().rss / (1024 ** 3)  # Convert to GB
+
+    # return cpu_usage, ram, gpu_usage, gpu_mem
+    return cpu, ram, gpu, gpu_mem
 
 start_time = time.time()
 
@@ -137,9 +151,9 @@ with tqdm(total=num_epochs) as pbar:
         pbar.update()
 
         # Resource monitoring
-        cpu_usage.append(psutil.cpu_percent())
-        ram_usage_gb.append(psutil.virtual_memory().used / (1024 ** 3))  # Convert RAM usage to GB
-        gpu_util, gpu_mem = get_gpu_usage()
+        cpu, ram, gpu_util, gpu_mem = get_gpu_usage()
+        cpu_usage.append(cpu)
+        ram_usage_gb.append(ram)
         gpu_percent_usage.append(gpu_util)
         gpu_mem_usage.append(gpu_mem)
 
@@ -155,6 +169,7 @@ with tqdm(total=num_epochs) as pbar:
             if epochs_no_improve >= patience:
                 print(f'Early stopping at epoch {epoch+1}')
                 break
+        pbar.set_postfix(train_loss=train_loss_epoch, vali_loss=vali_loss_epoch, best_vali_loss=best_vali_loss)
 
 total_time = time.time() - start_time
 print(f'Finished Training in {total_time:.2f} seconds')
@@ -189,6 +204,7 @@ ax2.tick_params(axis='y', labelcolor='tab:orange')
 
 fig.tight_layout()
 fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
+ax1.set_ylim(0, 100)
 plt.savefig('resource_usage.png')
 
 with open('resources.txt', 'w') as f:
@@ -216,3 +232,5 @@ with open('train_losses.txt', 'w') as f:
 with open('val_losses.txt', 'w') as f:
     for loss in val_losses:
         f.write(f'{loss}\n')
+
+pynvml.nvmlShutdown()

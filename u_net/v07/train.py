@@ -2,11 +2,13 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import psutil
-import subprocess
 import time
 import matplotlib.pyplot as plt
-import pandas as pd
 from tqdm import tqdm
+import pynvml
+import os
+
+pynvml.nvmlInit()
 
 from model import UNet
 from dataset import TrainDataset, TestDataset
@@ -48,16 +50,29 @@ gpu_mem_usage = []
 gpu_percent_usage = []
 times = []
 
-def get_gpu_usage():
-    result = subprocess.run(
-        ['nvidia-smi', '--query-gpu=utilization.gpu,memory.used', '--format=csv,noheader,nounits'],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
-    if result.returncode == 0:
-        utilization, memory_used = result.stdout.split('\n')[0].split(', ')
-        return float(utilization), float(memory_used) / 1024  # Convert memory to GB
-    else:
-        return 0.0, 0.0
+def get_ressource_monitoring():
+    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+    process_id = os.getpid()
+    processes = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
+
+    # Find the memory usage for the current process
+    memory_usage = 0
+    for process in processes:
+        if process.pid == process_id:
+            memory_usage = process.usedGpuMemory
+            break
+    gpu_mem = memory_usage / 1024 / 1024  / 1024  # Convert to GB
+    
+    utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
+    gpu = utilization.gpu
+    
+    process = psutil.Process(process_id)
+    
+    cpu = process.cpu_percent()
+    ram = process.memory_info().rss / (1024 ** 3)  # Convert to GB
+
+    # return cpu_usage, ram, gpu_usage, gpu_mem
+    return cpu, ram, gpu, gpu_mem
 
 start_time = time.time()
 
@@ -119,9 +134,9 @@ with tqdm(total=num_epochs) as pbar:
         pbar.update()
 
         # Resource monitoring
-        cpu_usage.append(psutil.cpu_percent())
-        ram_usage_gb.append(psutil.virtual_memory().used / (1024 ** 3))  # Convert RAM usage to GB
-        gpu_util, gpu_mem = get_gpu_usage()
+        cpu, ram, gpu_util, gpu_mem = get_ressource_monitoring()
+        cpu_usage.append(cpu)
+        ram_usage_gb.append(ram)
         gpu_percent_usage.append(gpu_util)
         gpu_mem_usage.append(gpu_mem)
 
@@ -196,3 +211,5 @@ with open('train_losses.txt', 'w') as f:
 
 with open('val_losses.txt', 'w') as f:
     f.write('\n'.join(map(str, val_losses)) + '\n')                 
+    
+pynvml.nvmlShutdown()

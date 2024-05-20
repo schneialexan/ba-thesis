@@ -5,7 +5,7 @@ import psutil
 import subprocess
 import time
 import matplotlib.pyplot as plt
-import pandas as pd
+import os
 from tqdm import tqdm
 
 from model import ConvLSTM
@@ -16,10 +16,6 @@ import warnings
 warnings.filterwarnings("ignore", message="Plan failed with a cudnnException: CUDNN_BACKEND_EXECUTION_PLAN_DESCRIPTOR")
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# clear cuda cache
-torch.cuda.empty_cache()
-torch.cuda.reset_peak_memory_stats()
 
 batch_size = 32
 num_epochs = 10
@@ -58,16 +54,28 @@ gpu_mem_usage = []
 gpu_percent_usage = []
 times = []
 
+import pynvml
+import os
+pynvml.nvmlInit()
+
 def get_gpu_usage():
-    result = subprocess.run(
-        ['nvidia-smi', '--query-gpu=utilization.gpu,memory.used', '--format=csv,noheader,nounits'],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
-    if result.returncode == 0:
-        utilization, memory_used = result.stdout.split('\n')[0].split(', ')
-        return float(utilization), float(memory_used) / 1024  # Convert memory to GB
-    else:
-        return 0.0, 0.0
+    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+    process_id = os.getpid()
+    processes = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
+
+    # Find the memory usage for the current process
+    memory_usage = 0
+    for process in processes:
+        if process.pid == process_id:
+            memory_usage = process.usedGpuMemory
+            break
+    memory_usage = memory_usage / 1024 / 1024  / 1024  # Convert to GB
+    
+    utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
+    gpu_utilization = utilization.gpu
+
+    return gpu_utilization, memory_usage
+
 
 start_time = time.time()
 
@@ -208,3 +216,5 @@ with open('train_losses.txt', 'w') as f:
 with open('val_losses.txt', 'w') as f:
     for loss in val_losses:
         f.write(f'{loss}\n')
+
+pynvml.nvmlShutdown()
