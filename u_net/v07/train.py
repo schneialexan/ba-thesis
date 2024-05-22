@@ -152,6 +152,37 @@ with tqdm(total=num_epochs) as pbar:
             if epochs_no_improve >= patience:
                 print(f'Early stopping at epoch {epoch+1}')
                 break
+        
+        if epoch % 10 == 0:
+            # Plot and save train and validation loss
+            fig, ax = plt.subplots()
+            ax.plot(range(len(train_losses)), train_losses, label='Train Loss')
+            ax.plot(range(len(val_losses)), val_losses, label='Validation Loss')
+            ax.set_xlabel('Epoch')
+            ax.set_ylabel('Loss')
+            ax.legend()
+            plt.savefig('train_val_loss.png')
+
+            # Plot and save resource usage
+            fig, ax1 = plt.subplots(figsize=(10, 6))
+
+            ax1.set_xlabel('Epoch')
+            ax1.set_ylabel('Usage (%)', color='tab:blue')
+            ax1.plot(range(len(cpu_usage)), cpu_usage, label='CPU Usage (%)', color='tab:blue')
+            ax1.plot(range(len(gpu_percent_usage)), gpu_percent_usage, label='GPU Usage (%)', linestyle='dotted', color='tab:blue')
+            ax1.tick_params(axis='y', labelcolor='tab:blue')
+
+            ax2 = ax1.twinx()
+            ax2.set_ylabel('Memory Usage (GB)', color='tab:orange')
+            ax2.plot(range(len(ram_usage_gb)), ram_usage_gb, label='RAM Usage (GB)', linestyle='dashed', color='tab:orange')
+            ax2.plot(range(len(gpu_mem_usage)), gpu_mem_usage, label='GPU Memory Usage (GB)', color='tab:orange')
+            ax2.tick_params(axis='y', labelcolor='tab:orange')
+
+            fig.tight_layout()
+            fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
+            ax1.set_ylim(0, 100)
+            plt.savefig('resource_usage.png')
+            plt.close('all')
 
 total_time = time.time() - start_time
 print(f'Finished Training in {total_time:.2f} seconds')

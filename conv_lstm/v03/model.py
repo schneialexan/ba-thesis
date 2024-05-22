@@ -143,10 +143,6 @@ class ConvLSTM(nn.Module):
         -------
         last_state_list, layer_output
         """
-        
-        # permute input to have shape: (b, t, c, h, w)
-        input_tensor = input_tensor.permute(0, 4, 3, 1, 2)
-
         b, _, _, h, w = input_tensor.size()
 
         # Implement stateful ConvLSTM
@@ -211,21 +207,19 @@ class ConvLSTM(nn.Module):
             param = [param] * num_layers
         return param
 
-'''
 # sample usage
 model = ConvLSTM(input_dim=3, 
                  hidden_dim=[64, 64, 64], 
-                 input_seq=5, 
+                 input_seq=1, 
                  kernel_size=[(3,3)]*3, 
                  num_layers=3, 
                  batch_first=True, 
                  bias=True, 
                  return_all_layers=False)
 
-permutation = [0, 3, 4, 2, 1]
-input_image = torch.randn(1, 5, 3, 128, 128).permute(permutation)
-
-torch.onnx.export(model, input_image, "convlstm.onnx", verbose=True)
+permutation = [0, 4, 3, 2, 1]
+input_image = torch.randn(1, 1, 3, 128, 128)
 
 output_image = model(input_image)
-print(output_image.shape)'''
+output_image = output_image.permute(permutation)
+print(output_image.shape)

@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import psutil
-import subprocess
 import time
 import matplotlib.pyplot as plt
 import os
@@ -15,12 +14,15 @@ from utils import fullImageOut, normalize_image
 import warnings
 warnings.filterwarnings("ignore", message="Plan failed with a cudnnException: CUDNN_BACKEND_EXECUTION_PLAN_DESCRIPTOR")
 
+import pynvml
+pynvml.nvmlInit()
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 batch_size = 32
-num_epochs = 10
+num_epochs = 1000
 patience = 10  # Number of epochs to wait for improvement before stopping
-tolerance = 0.01
+tolerance = 0.001
 
 data = TrainDataset()
 test_data = TestDataset(data)
@@ -34,7 +36,7 @@ input_size = data[0][0].shape
 output_size = data[0][1].shape
 model = ConvLSTM(input_dim=input_size[0], 
                  hidden_dim=[64, 128, 3], 
-                 kernel_size=[(3,3)]*3, 
+                 kernel_size=[(5,5)]*3, 
                  num_layers=3).to(device)
 
 criterion = nn.L1Loss()
@@ -69,12 +71,18 @@ def get_gpu_usage():
         if process.pid == process_id:
             memory_usage = process.usedGpuMemory
             break
-    memory_usage = memory_usage / 1024 / 1024  / 1024  # Convert to GB
+    gpu_mem = memory_usage / 1024 / 1024  / 1024  # Convert to GB
     
     utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
-    gpu_utilization = utilization.gpu
+    gpu = utilization.gpu
+    
+    process = psutil.Process(process_id)
+    
+    cpu = process.cpu_percent()
+    ram = process.memory_info().rss / (1024 ** 3)  # Convert to GB
 
-    return gpu_utilization, memory_usage
+    # return cpu_usage, ram, gpu_usage, gpu_mem
+    return cpu, ram, gpu, gpu_mem
 
 
 start_time = time.time()
@@ -127,7 +135,10 @@ with tqdm(total=num_epochs) as pbar:
                     input_image = images[0].cpu().numpy()
                     target_image = labels[0].cpu().numpy()
                     output_image = outputs[0].cpu().numpy()
-                    fullImageOut(f'images/output_{epoch}.png', input_image, target_image, output_image)
+                    input_image = normalize_image(input_image)
+                    target_image = normalize_image(target_image)
+                    output_image = normalize_image(output_image)
+                    fullImageOut(f'images/output_{epoch}', input_image, target_image, output_image)
                     plt.close('all')
         
         vali_loss_epoch /= len(test_loader)
@@ -137,9 +148,9 @@ with tqdm(total=num_epochs) as pbar:
         pbar.update()
 
         # Resource monitoring
-        cpu_usage.append(psutil.cpu_percent())
-        ram_usage_gb.append(psutil.virtual_memory().used / (1024 ** 3))  # Convert RAM usage to GB
-        gpu_util, gpu_mem = get_gpu_usage()
+        cpu, ram, gpu_util, gpu_mem = get_gpu_usage()
+        cpu_usage.append(cpu)
+        ram_usage_gb.append(ram)
         gpu_percent_usage.append(gpu_util)
         gpu_mem_usage.append(gpu_mem)
 
@@ -149,47 +160,50 @@ with tqdm(total=num_epochs) as pbar:
         if vali_loss_epoch < best_vali_loss or abs(vali_loss_epoch - best_vali_loss) > tolerance:
             best_vali_loss = vali_loss_epoch
             epochs_no_improve = 0
-            torch.save(model.state_dict(), 'best_vit_model.pth')
+            torch.save(model.state_dict(), 'best_convlstm_model.pth')
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
                 print(f'Early stopping at epoch {epoch+1}')
                 break
+            
+        # Save everything every 50 epochs
+        if epoch % 50 == 0:
+            # Plot and save train and validation loss
+            fig, ax = plt.subplots()
+            ax.plot(range(len(train_losses)), train_losses, label='Train Loss')
+            ax.plot(range(len(val_losses)), val_losses, label='Validation Loss')
+            ax.set_xlabel('Epoch')
+            ax.set_ylabel('Loss')
+            ax.legend()
+            plt.savefig('train_val_loss.png')
 
+            # Plot and save resource usage
+            fig, ax1 = plt.subplots(figsize=(10, 6))
+
+            ax1.set_xlabel('Epoch')
+            ax1.set_ylabel('Usage (%)', color='tab:blue')
+            ax1.plot(range(len(cpu_usage)), cpu_usage, label='CPU Usage (%)', color='tab:blue')
+            ax1.plot(range(len(gpu_percent_usage)), gpu_percent_usage, label='GPU Usage (%)', linestyle='dotted', color='tab:blue')
+            ax1.tick_params(axis='y', labelcolor='tab:blue')
+
+            ax2 = ax1.twinx()
+            ax2.set_ylabel('Memory Usage (GB)', color='tab:orange')
+            ax2.plot(range(len(ram_usage_gb)), ram_usage_gb, label='RAM Usage (GB)', linestyle='dashed', color='tab:orange')
+            ax2.plot(range(len(gpu_mem_usage)), gpu_mem_usage, label='GPU Memory Usage (GB)', color='tab:orange')
+            ax2.tick_params(axis='y', labelcolor='tab:orange')
+
+            fig.tight_layout()
+            fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
+            plt.savefig('resource_usage.png')
+            plt.close('all')
+            
 total_time = time.time() - start_time
 print(f'Finished Training in {total_time:.2f} seconds')
 
 # Load the best model
 model.load_state_dict(torch.load('best_convlstm_model.pth'))
-torch.save(model.state_dict(), 'best_convlstm_model.pth')
-
-# Plot and save train and validation loss
-fig, ax = plt.subplots()
-ax.plot(range(len(train_losses)), train_losses, label='Train Loss')
-ax.plot(range(len(val_losses)), val_losses, label='Validation Loss')
-ax.set_xlabel('Epoch')
-ax.set_ylabel('Loss')
-ax.legend()
-plt.savefig('train_val_loss.png')
-
-# Plot and save resource usage
-fig, ax1 = plt.subplots(figsize=(10, 6))
-
-ax1.set_xlabel('Epoch')
-ax1.set_ylabel('Usage (%)', color='tab:blue')
-ax1.plot(range(len(cpu_usage)), cpu_usage, label='CPU Usage (%)', color='tab:blue')
-ax1.plot(range(len(gpu_percent_usage)), gpu_percent_usage, label='GPU Usage (%)', linestyle='dotted', color='tab:blue')
-ax1.tick_params(axis='y', labelcolor='tab:blue')
-
-ax2 = ax1.twinx()
-ax2.set_ylabel('Memory Usage (GB)', color='tab:orange')
-ax2.plot(range(len(ram_usage_gb)), ram_usage_gb, label='RAM Usage (GB)', linestyle='dashed', color='tab:orange')
-ax2.plot(range(len(gpu_mem_usage)), gpu_mem_usage, label='GPU Memory Usage (GB)', color='tab:orange')
-ax2.tick_params(axis='y', labelcolor='tab:orange')
-
-fig.tight_layout()
-fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
-plt.savefig('resource_usage.png')
+torch.save(model.state_dict(), 'final_convlstm_model.pth')
 
 with open('resources.txt', 'w') as f:
     f.write(f'Total time: {total_time:.2f} seconds\n')

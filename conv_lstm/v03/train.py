@@ -57,7 +57,6 @@ model = ConvLSTM(3, config["hidden_dim"], 3, config["kernel_size"], config["num_
 #torch.onnx.export(model, torch.rand((32, 10, 3, 128, 128)), "convlstm.onnx")
 
 # Loss and optimizer
-criterion_mse = nn.MSELoss()
 criterion_l1 = nn.L1Loss()
 optimizer = Adam(model.parameters(), lr=config["learning_rate"], betas=(config["beta1"], config["beta2"]), weight_decay=config["weight_decay"])
 
@@ -76,10 +75,6 @@ with tqdm(total=num_epochs) as pbar:
             for i, (inputs, targets) in enumerate(train_loader):        
                 inputs = inputs.float().to(device)
                 targets = targets.float().to(device)
-                
-                # permutation
-                inputs = inputs.permute(permutation)
-                targets = targets.permute(permutation)
                 
                 # Forward pass
                 outputs = model(inputs)
@@ -107,17 +102,14 @@ with tqdm(total=num_epochs) as pbar:
                     inputs = inputs.float().to(device)
                     targets = targets.float().to(device)
                     
-                    inputs = inputs.permute(permutation)
-                    targets = targets.permute(permutation)
-                    
                     outputs = model(inputs)
                     vali_loss += criterion_l1(outputs, targets).item()
                     
             
                     if i == 0 and epoch % 5 == 0:
-                        inputs_image = inputs.permute([0, 4, 3, 1, 2])[0].cpu().numpy()[0]
-                        output_image = outputs.permute([0, 4, 3, 1, 2])[0].cpu().numpy()[0]
-                        target_image = targets.permute([0, 4, 3, 1, 2])[0].cpu().numpy()[0]
+                        inputs_image = inputs[0].cpu().numpy()[0]
+                        output_image = outputs[0].cpu().numpy()[0]
+                        target_image = targets[0].cpu().numpy()[0]
                         fullImageOut(os.path.join(image_dir, "output_%d" % epoch), inputs_image, output_image, target_image)
                         plt.close('all')
                     
