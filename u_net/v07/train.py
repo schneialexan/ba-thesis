@@ -34,7 +34,6 @@ print(f"Test Dataset length: {len(test_data)} | Batch size: {batch_size} | Numbe
 
 model = UNet(channelExponent=3, dropout=0.).to(device)
 
-expo = 3
 criterion = nn.L1Loss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0006, betas=(0.5, 0.999), weight_decay=0.0)
 
@@ -214,6 +213,7 @@ ax2.set_ylabel('Memory Usage (GB)', color='tab:orange')
 ax2.plot(range(len(ram_usage_gb)), ram_usage_gb, label='RAM Usage (GB)', linestyle='dashed', color='tab:orange')
 ax2.plot(range(len(gpu_mem_usage)), gpu_mem_usage, label='GPU Memory Usage (GB)', color='tab:orange')
 ax2.tick_params(axis='y', labelcolor='tab:orange')
+ax2.set_ylim(0, None)
 
 fig.tight_layout()
 fig.legend(loc='upper left', bbox_to_anchor=(0.1, 0.9))
