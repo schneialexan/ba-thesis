@@ -31,7 +31,7 @@
 - [📖 Table of Contents](#-table-of-contents)
 - [📍 Overview](#-overview)
 - [📂 Repository Structure](#-repository-structure)
-- [⚙️ Modules](#modules)
+- [⚙️ Modules](#-modules)
 - [🚀 Getting Started](#-getting-started)
 - [🛣 Roadmap](#-roadmap)
 - [🤝 Contributing](#-contributing)
