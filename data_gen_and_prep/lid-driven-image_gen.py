@@ -315,5 +315,15 @@ if __name__ == "__main__":
                 plt.imsave(f'{path}/u_ss.png', data_interpolated_u, cmap='gray')
                 plt.imsave(f'{path}/v_ss.png', data_interpolated_v, cmap='gray')
                 plt.imsave(f'{path}/p_ss.png', p_rot, cmap='gray')
+                with open(f'{path}/u_ss.png', 'w') as file:
+                    for i in range(data_interpolated_u.shape[0]):
+                        for j in range(data_interpolated_u.shape[1]):
+                            file.write(f"{data_interpolated_u[i, j]:.5f} ")
+                        file.write("\n")
+                with open(f'{path}/v_ss.png', 'w') as file:
+                    for i in range(data_interpolated_v.shape[0]):
+                        for j in range(data_interpolated_v.shape[1]):
+                            file.write(f"{data_interpolated_v[i, j]:.5f} ")
+                        file.write("\n")
             pbar_re.update(1)
         
