@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
 
 import numpy as np
 import tqdm
@@ -8,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from dataset import generate_input, generate_output
 from model import ConvLSTM
-from utils import normalize_image
+from utils import normalize_image, fullImageOut
 
 model_path = 'final_convlstm_model.pth'
 expo = 3
@@ -25,7 +24,6 @@ permutation = [0, 4, 3, 2, 1]
 
 criterion_l1 = nn.L1Loss()
 criteria_mse = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.0006, betas=(0.5, 0.999), weight_decay=0.0)
 
 Res = np.arange(150., 4000., 100.)
 tss = np.arange(0.5, 9.95, 0.05)
@@ -97,3 +95,16 @@ df = pd.DataFrame({
 })
 
 df.to_csv('test_losses.csv', index=False)
+
+# make the worst l1 loss an image:
+worst_Re, worst_ts = max(losses_l1, key=losses_l1.get)
+print(f"Worst L1 Loss: Re={worst_Re}, ts={worst_ts}, L1 Loss={losses_l1[(worst_Re, worst_ts)]}")
+input = normalize_image(generate_input(worst_Re, worst_ts).reshape(1, 1, 3, 128, 128))
+target = normalize_image(generate_output(worst_Re).reshape(1, 1, 3, 128, 128))
+
+input = torch.tensor(input, dtype=torch.float32).to(device)
+target = torch.tensor(target, dtype=torch.float32).to(device)
+
+outputs = model(input).permute(permutation)
+
+fullImageOut('worst_l1_loss', input[0, 0].cpu().numpy(), target[0, 0].cpu().numpy(), outputs[0, 0].cpu().detach().numpy())
