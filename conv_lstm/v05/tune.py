@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from dataset import ConvLSTM2DDataset, ValiDataset
+from dataset import TrainDataset, ValiDataset
 from model import ConvLSTM
 from utils import normalize_image
 

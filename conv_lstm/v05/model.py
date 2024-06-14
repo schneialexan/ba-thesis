@@ -1,13 +1,3 @@
-"""
-ConvLSTM class definition
-
-Author: Sam Johnston
-Collaborator: Paulo Rocha
-Supervisor: Dr Jesse The
-
-Date: March 2022
-"""
-
 #===========================================================================================================
 # IMPORTS
 #===========================================================================================================
@@ -50,11 +40,13 @@ class ConvLSTMCell(nn.Module):
                               bias=self.bias)
 
     def forward(self, input_tensor, cur_state):
+        print(input_tensor.shape)
         h_cur, c_cur = cur_state
 
         combined = torch.cat([input_tensor, h_cur], dim=1)  # concatenate along channel axis
 
         combined_conv = self.conv(combined)
+        print(combined_conv.shape)
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
         i = torch.sigmoid(cc_i)
         f = torch.sigmoid(cc_f)
@@ -207,8 +199,7 @@ class ConvLSTM(nn.Module):
             param = [param] * num_layers
         return param
 
-'''# sample usage
-model = ConvLSTM(input_dim=3, 
+'''model = ConvLSTM(input_dim=3, 
                  hidden_dim=[64, 64, 64], 
                  input_seq=1, 
                  kernel_size=[(3,3)]*3, 
@@ -218,7 +209,7 @@ model = ConvLSTM(input_dim=3,
                  return_all_layers=False)
 
 permutation = [0, 4, 3, 2, 1]
-input_image = torch.randn(1, 1, 3, 128, 128)
+input_image = torch.randn(10, 1, 3, 128, 128)
 
 output_image = model(input_image)
 output_image = output_image.permute(permutation)

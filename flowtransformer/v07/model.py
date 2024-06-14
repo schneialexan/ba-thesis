@@ -46,10 +46,7 @@ class FlowTransformer(nn.Module):
         
         return prediction
 
-'''
-# https://arxiv.org/pdf/2205.13485
-# Example input dimensions
-batch_size = 1
+'''batch_size = 10
 channels = 3
 width = 128
 height = 128
@@ -63,7 +60,7 @@ frame = torch.randn(batch_size, *input_size)
 
 # Instantiate the FlowTransformer model
 model = FlowTransformer(input_size, output_size)
-torch.onnx.export(model, frame, "flow_transformer.onnx")
+#torch.onnx.export(model, frame, "flow_transformer.onnx")
 
 # Forward pass
 predicted_frame = model(frame)

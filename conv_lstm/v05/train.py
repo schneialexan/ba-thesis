@@ -8,7 +8,7 @@ import os
 from tqdm import tqdm
 
 from model import ConvLSTM
-from dataset import ConvLSTM2DDataset, ValiDataset
+from dataset import TrainDataset, ValiDataset
 from utils import fullImageOut, normalize_image
 
 import warnings

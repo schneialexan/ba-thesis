@@ -20,12 +20,14 @@ def blockUNet(in_c, out_c, name, transposed=False, bn=True, relu=True, size=4, p
         block.add_module('%s_relu' % name, nn.ReLU(inplace=True))
     else:
         block.add_module('%s_leakyrelu' % name, nn.LeakyReLU(0.2, inplace=True))
+        
     if not transposed:
         block.add_module('%s_conv' % name, nn.Conv2d(in_c, out_c, kernel_size=size, stride=2, padding=pad, bias=True))
     else:
         block.add_module('%s_upsam' % name, nn.Upsample(scale_factor=2, mode='bilinear')) # Note: old default was nearest neighbor
         # reduce kernel size by one for the upsampling (ie decoder part)
         block.add_module('%s_tconv' % name, nn.Conv2d(in_c, out_c, kernel_size=(size-1), stride=1, padding=pad, bias=True))
+        
     if bn:
         block.add_module('%s_bn' % name, nn.BatchNorm2d(out_c))
     if dropout>0.:
@@ -85,12 +87,18 @@ class UNet(nn.Module):
         return dout1
     
 
-'''
-# example usage
-model = UNet()
-input_image = torch.randn(1, 3, 128, 128)
+'''channel_exponent = 3
+dropout = 0.
 
-torch.onnx.export(model, input_image, "unet.onnx", verbose=True)
+batch_size = 10
+channels = 3
+width = 128
+height = 128
+
+model = UNet(channel_exponent, dropout)
+input_image = torch.randn(batch_size, channels, width, height)
+
+#torch.onnx.export(model, input_image, "unet.onnx", verbose=True)
 
 output_image = model(input_image)
 print(output_image.shape)'''

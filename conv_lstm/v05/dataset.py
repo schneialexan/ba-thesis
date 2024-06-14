@@ -38,7 +38,7 @@ def generate_output(Re):
     return np.stack([p[0], u[0], v[0]], axis=0, dtype=np.float64)
 
 
-class ConvLSTM2DDataset(Dataset):
+class TrainDataset(Dataset):
     def __init__(self, mode="train"):
         self.REs = np.arange(100., 4000.0, 100.)
         self.timesteps = np.arange(0., 9.95, 0.05)
@@ -76,7 +76,7 @@ class ConvLSTM2DDataset(Dataset):
     def __getitem__(self, idx):
         return self.inputs[idx], self.targets[idx]
 
-class ValiDataset(ConvLSTM2DDataset):
+class ValiDataset(TrainDataset):
     def __init__(self, dataset): 
         self.inputs = dataset.valiInputs
         self.targets = dataset.valiTargets
